@@ -1,0 +1,1 @@
+from . import locality, res_partner, res_company, account_invoice,download_file, account_tax, product_uom
