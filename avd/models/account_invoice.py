@@ -170,13 +170,13 @@ class AccountInvoice(models.Model):
 
             # Issue Date
             txt += pipe
-            time =  datetime.datetime.now() - datetime.timedelta(hours=6)
-            txt += time.strftime('%Y-%m-%d')
+            tim =  datetime.datetime.now() - datetime.timedelta(hours=6)
+            txt += tim.strftime('%Y-%m-%d')
 
             # Todo capure invoice time seperately
             # Broadcast time
 
-            cn_time = time.strftime('%H:%M:%S')
+            cn_time = tim.strftime('%H:%M:%S')
             txt += pipe
             txt += cn_time
 
