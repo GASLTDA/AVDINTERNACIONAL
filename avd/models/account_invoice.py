@@ -1,20 +1,15 @@
 import string
 import time
-from urllib.parse import urlencode
-
-import base64
 
 import datetime
 
 import pytz
+import requests
 import xmltodict
-from lxml import etree
-from pip._vendor import requests
 
 from odoo import models, fields, api, http, exceptions
-from odoo.api import call_kw
 from odoo.exceptions import UserError
-from odoo.osv import osv
+
 
 
 class AccountInvoice(models.Model):

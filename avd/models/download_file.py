@@ -1,10 +1,8 @@
 import base64
 import io
 
-from werkzeug.utils import redirect
 
 from odoo import http
-from odoo.http import request
 from urllib.parse import unquote
 
 class DownloadFile(http.Controller):
