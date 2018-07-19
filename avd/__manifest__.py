@@ -11,6 +11,7 @@
     'website': 'https://janeindiran.com',
     'application': False,
     'auto_install': False,
+    'external_dependencies': {'python': ['xmltodict']},
     'data': [
         #import data
         'data/locality_province.xml',
