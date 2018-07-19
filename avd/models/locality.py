@@ -1,4 +1,4 @@
-from odoo import fields, api, models
+from odoo import fields, models
 
 class Province(models.Model):
     _name = 'province'
