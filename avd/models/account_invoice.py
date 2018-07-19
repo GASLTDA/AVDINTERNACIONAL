@@ -1,4 +1,5 @@
 import datetime
+import logging
 import string
 
 import requests
@@ -7,6 +8,7 @@ import xmltodict
 from odoo import models, fields, api
 from odoo.exceptions import UserError
 
+logger = logging.getLogger(__name__)
 
 class AccountInvoice(models.Model):
     _inherit = 'account.invoice'
@@ -170,13 +172,13 @@ class AccountInvoice(models.Model):
 
             # Issue Date
             txt += pipe
-            tim =  datetime.datetime.now() - datetime.timedelta(hours=6)
-            txt += tim.strftime('%Y-%m-%d')
+            time =  datetime.datetime.now() - datetime.timedelta(hours=6)
+            txt += time.strftime('%Y-%m-%d')
 
             # Todo capure invoice time seperately
             # Broadcast time
 
-            cn_time = tim.strftime('%H:%M:%S')
+            cn_time = time.strftime('%H:%M:%S')
             txt += pipe
             txt += cn_time
 
@@ -955,7 +957,7 @@ class AccountInvoice(models.Model):
         invoice_counter += 1
         # current_time = time.strftime("%Y%m%d-%H%M%S")
         # file_name = 'avd_' + current_time + '.txt'
-
+        logger.info(txt)
         data = '<?xml version="1.0" encoding="utf-8"?>' + \
                '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">' + \
                '<soap12:Body>' + \
@@ -968,14 +970,18 @@ class AccountInvoice(models.Model):
                '</soap12:Body>' + \
                '</soap12:Envelope>'
 
-        # print(data)
+
+
+        print(data)
 
         response = requests.post(id.company_id.url, data.encode(),
                                  headers={
                                      'Content-Type': 'application/soap+xml; charset=utf-8'
                                  })
 
+
         res = response.content.decode('UTF-8')
+        print(res)
         import xml.etree.ElementTree as ET
 
         root = ET.fromstring(res)
