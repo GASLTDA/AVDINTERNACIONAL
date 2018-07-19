@@ -1,15 +1,11 @@
-import string
-import time
-
 import datetime
+import string
 
-import pytz
 import requests
 import xmltodict
 
-from odoo import models, fields, api, http, exceptions
+from odoo import models, fields, api
 from odoo.exceptions import UserError
-
 
 
 class AccountInvoice(models.Model):
@@ -173,15 +169,14 @@ class AccountInvoice(models.Model):
             txt += pipe
 
             # Issue Date
-            tz = pytz.timezone('America/Costa_Rica')
             txt += pipe
-            txt += datetime.datetime.now(tz).strftime('%Y-%m-%d')
+            time =  datetime.datetime.now() - datetime.timedelta(hours=6)
+            txt += time.strftime('%Y-%m-%d')
 
             # Todo capure invoice time seperately
             # Broadcast time
 
-            tz = pytz.timezone('America/Costa_Rica')
-            cn_time = datetime.datetime.now(tz).strftime('%H:%M:%S')
+            cn_time = time.strftime('%H:%M:%S')
             txt += pipe
             txt += cn_time
 
