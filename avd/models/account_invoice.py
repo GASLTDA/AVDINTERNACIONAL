@@ -957,6 +957,7 @@ class AccountInvoice(models.Model):
         invoice_counter += 1
         # current_time = time.strftime("%Y%m%d-%H%M%S")
         # file_name = 'avd_' + current_time + '.txt'
+        print(txt)
         data = '<?xml version="1.0" encoding="utf-8"?>' + \
                '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">' + \
                '<soap12:Body>' + \
@@ -970,6 +971,8 @@ class AccountInvoice(models.Model):
                '</soap12:Envelope>'
 
 
+
+        print(data)
 
         response = requests.post(id.company_id.url, data.encode(),
                                  headers={

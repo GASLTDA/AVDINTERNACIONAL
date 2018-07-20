@@ -26,9 +26,9 @@
                         <field name="date" readonly="1"/>
                     </group>
                 </group>
-                <group string="Response" attrs="{'invisible': [('folio','=',False)]}">
+                <group string="Response" attrs="{'invisible': [('response','=',False)]}">
                 </group>
-                <field name="response" readonly="1" attrs="{'invisible': [('folio','=',False)]}"/>
+                <field name="response" readonly="1" attrs="{'invisible': [('response','=',False)]}"/>
             </xpath>
 
         </field>
