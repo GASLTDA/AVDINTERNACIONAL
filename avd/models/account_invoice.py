@@ -665,7 +665,7 @@ class AccountInvoice(models.Model):
 
             # Box number, or POS terminal. Data necessary for fiscal consecutive. Maximum 5 digits.Use "00001" when they apply.
             txt += pipe
-            txt += '00001'
+            txt += '02'
 
             # Discount rate being applied.
             txt += pipe
