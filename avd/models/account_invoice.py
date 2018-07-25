@@ -22,8 +22,11 @@ class AccountInvoice(models.Model):
     ], default='01', string='Type of Receiptor')
 
     def _show_button(self):
-        if self.state == 'open' and self.success == False:
-            self.show_button = True
+        if self.type in ('in_refund', 'out_invoice', 'out_refund'):
+            if self.state == 'open' and self.success == False:
+                self.show_button = True
+            else:
+                self.show_button = False
         else:
             self.show_button = False
 
@@ -55,7 +58,7 @@ class AccountInvoice(models.Model):
         id = self
 
         if id.type not in ('in_refund', 'out_invoice', 'out_refund'):
-            raise UserError('This type of document is not supported')
+            return
 
         if id.number and len(id.number) <= 20 and id.number.isdigit():
             txt += hat
