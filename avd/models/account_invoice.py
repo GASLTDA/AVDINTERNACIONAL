@@ -668,7 +668,7 @@ class AccountInvoice(models.Model):
 
             # Box number, or POS terminal. Data necessary for fiscal consecutive. Maximum 5 digits.Use "00001" when they apply.
             txt += pipe
-            txt += '02'
+            txt += '00002'
 
             # Discount rate being applied.
             txt += pipe
@@ -1027,27 +1027,27 @@ class AccountInvoice(models.Model):
     def _get_phone(self, id):
         if id.phone:
             return str(id.phone)
-        raise UserError('Required data is missing or empty')
+        return ''
 
 
     def _get_fax(self, id):
         if id.fax_no:
             return str(id.fax_no)
-        raise UserError('Fax number cannot be more than 20 numbers')
+        return ''
 
 
     def _get_name(self, name, empty_space=False):
         if name:
             return self._get_string(name.name, empty_space)
 
-        raise UserError('Required data is missing or empty')
+        return ''
 
 
     def _get_code(self, code):
         if code:
             return code.code
 
-        raise UserError('Required data is missing or empty')
+        return ''
 
 
     def _get_string(self, string, empty_space=False):
