@@ -755,9 +755,12 @@ class AccountInvoice(models.Model):
                     sale_order_line_id = self.env['sale.order.line'].sudo().search(
                         [('order_id', '=', sale_order_id.id), ('product_id', '=', line.product_id.id)])
                     if sale_order_line_id:
-                        if sale_order_line_id.product_uom.code:
-                            txt += sale_order_line_id.product_uom.code
-                        else:
+                        try:
+                            if sale_order_line_id.product_uom.code:
+                                txt += sale_order_line_id.product_uom.code
+                            else:
+                                txt += 'Otros'
+                        except:
                             txt += 'Otros'
                     else:
                         txt += 'Otros'
@@ -808,9 +811,12 @@ class AccountInvoice(models.Model):
                     sale_order_line_id = self.env['sale.order.line'].sudo().search(
                         [('order_id', '=', sale_order_id.id), ('product_id', '=', line.product_id.id)])
                     if sale_order_line_id:
-                        if sale_order_line_id.product_uom.code:
-                            txt += sale_order_line_id.product_uom.code
-                        else:
+                        try:
+                            if sale_order_line_id.product_uom.code:
+                                txt += sale_order_line_id.product_uom.code
+                            else:
+                                txt += 'Otros'
+                        except:
                             txt += 'Otros'
                     else:
                         txt += 'Otros'
@@ -1152,13 +1158,14 @@ class AccountInvoice(models.Model):
         return '1'
 
 
+
     def _doc_type(self, id):
         if id.type == 'out_invoice':
             return '01'
-        elif id.type == 'out_refund':
-            return '02'
         elif id.type == 'in_refund':
-            return '03'
+            return '02' # Debit note (Vendor)
+        elif id.type == 'out_refund':
+            return '03' # Credit note (Customer)
 
 
     def _get_doc_type(self, id, opp=False):
