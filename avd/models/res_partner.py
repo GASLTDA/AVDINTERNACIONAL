@@ -14,11 +14,10 @@ class ResPartner(models.Model):
     phone = fields.Char('Phone', size=20)
     num_cedula_receptor = fields.Selection([('01','Cédula Física'),('02','Cédula Jurídica'),('03','DIMEX'),('04','NITE')], string='Tipo', default='02')
 
-
     @api.onchange('name')
     def onchange_name(self):
         all_normal_characters = string.ascii_letters
         for char in self.name:
-            if char not in all_normal_characters:
+            if char not in all_normal_characters and char != ' ':
                 name = self.name
                 self.name = name.replace(char,'')

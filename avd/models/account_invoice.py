@@ -62,7 +62,7 @@ class AccountInvoice(models.Model):
         if id.type not in ('in_refund', 'out_invoice', 'out_refund'):
             return
 
-        if id.number and len(id.number) <= 20 and id.number.isdigit():
+        if id.number and len(id.number) <= 20:
             txt += hat
             txt += '[Folio]'
 
