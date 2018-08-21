@@ -12,7 +12,7 @@ class ResPartner(models.Model):
     district_id = fields.Many2one('district', string='District', placeholder='District',domain="[('canton_id','=',canton_id)]")
     locality_id = fields.Many2one('locality', string='Locality', placeholder='Locality',domain="[('district_id','=',district_id)]")
     phone = fields.Char('Phone', size=20)
-    num_cedula_receptor = fields.Char('Num Cedula Receptor')
+    num_cedula_receptor = fields.Selection([('01','Cédula Física'),('02','Cédula Jurídica'),('03','DIMEX'),('04','NITE')], string='Tipo', default='02')
 
 
     @api.onchange('name')
