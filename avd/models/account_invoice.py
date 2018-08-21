@@ -695,7 +695,7 @@ class AccountInvoice(models.Model):
 
             # Box number, or POS terminal. Data necessary for fiscal consecutive. Maximum 5 digits.Use "00001" when they apply.
             txt += pipe
-            txt += '00002'
+            txt += id.terminal.name
 
             # Discount rate being applied.
             txt += pipe
@@ -1000,18 +1000,21 @@ class AccountInvoice(models.Model):
 
         res = response.content.decode('UTF-8')
         import xml.etree.ElementTree as ET
-
-        root = ET.fromstring(res)
-        child = root[0][0][0]
-
-        contenu = ET.tostring(child, encoding='UTF-8', method='xml').decode('UTF-8')
-        response = (xmltodict.parse(contenu).get('ns0:procesarTextoPlanoSinCtlResult')['#text'])
-        individual_data = (xmltodict.parse(response).get('Return'))
+        individual_data = None
         success = False
+        try:
+            root = ET.fromstring(res)
+            child = root[0][0][0]
+            contenu = ET.tostring(child, encoding='UTF-8', method='xml').decode('UTF-8')
+            response = (xmltodict.parse(contenu).get('ns0:procesarTextoPlanoSinCtlResult')['#text'])
+            individual_data = (xmltodict.parse(response).get('Return'))
+        except:
+            response = res
+
         write_data = {
             'response': response
         }
-        if individual_data:
+        if individual_data != None:
             if 'ReturnFolio' in individual_data:
                 success = True
                 write_data.update({'success': success,
