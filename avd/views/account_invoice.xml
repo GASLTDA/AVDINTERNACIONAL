@@ -11,6 +11,11 @@
                 <attribute name="required">1</attribute>
             </xpath>
 
+
+            <xpath expr="//field[@name='payment_term_id']" position="after">
+                <field name="terminal" required="1" />
+            </xpath>
+
             <xpath expr="//button[@name='action_invoice_open']" position="after">
                 <button name="generate_file" type="object" attrs="{'invisible': [('show_button','=',False)]}"  string="Submit to AVD" class="oe_highlight o_invoice_validate" groups="account.group_account_invoice"/>
             </xpath>

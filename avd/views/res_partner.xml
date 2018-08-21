@@ -35,6 +35,11 @@
             <xpath expr="//field[@name='vat']" position="after">
                 <field name="fax_no"  widget="phone"/>
             </xpath>
+
+            <xpath expr="//field[@name='vat']" position="after">
+                <field name="num_cedula_receptor" />
+            </xpath>
+
         </field>
     </record>
 </data>

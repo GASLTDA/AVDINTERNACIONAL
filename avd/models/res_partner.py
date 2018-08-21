@@ -12,6 +12,8 @@ class ResPartner(models.Model):
     district_id = fields.Many2one('district', string='District', placeholder='District',domain="[('canton_id','=',canton_id)]")
     locality_id = fields.Many2one('locality', string='Locality', placeholder='Locality',domain="[('district_id','=',district_id)]")
     phone = fields.Char('Phone', size=20)
+    num_cedula_receptor = fields.Char('Num Cedula Receptor')
+
 
     @api.onchange('name')
     def onchange_name(self):

@@ -5,7 +5,7 @@ import string
 import requests
 import xmltodict
 
-from odoo import models, fields, api
+from odoo import models, fields, api,_
 from odoo.exceptions import UserError
 
 logger = logging.getLogger(__name__)
@@ -20,6 +20,8 @@ class AccountInvoice(models.Model):
         ('04', 'Alien'),
         ('05', 'Other'),
     ], default='01', string='Type of Receiptor')
+
+    terminal = fields.Many2one('terminal')
 
     def _show_button(self):
         if self.type in ('in_refund', 'out_invoice', 'out_refund'):
@@ -47,7 +49,7 @@ class AccountInvoice(models.Model):
     def generate_file(self):
 
         if not self.company_id.url or not self.company_id.username or not self.company_id.password:
-            raise UserError("Please check AVD configuration")
+            raise UserError(_("Please check AVD configuration"))
         hat = '~'
         pipe = '|'
         carriage_return = '\n'
@@ -359,45 +361,70 @@ class AccountInvoice(models.Model):
 
             # Store name or place of delivery
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.name)
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.name)
+            else:
+                txt += self._get_string(id.partner_id.name)
 
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.street)
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.street)
+            else:
+                txt += self._get_string(id.partner_id.street)
 
             # Store name or place of delivery Exterior No.
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.street2)
-
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.street2)
+            else:
+                txt += self._get_string(id.partner_id.street2)
             # Store name or place of delivery Interior No.
             txt += pipe
 
             # Store name or place of delivery District
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.district_id.name)
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.district_id.name)
+            else:
+                txt += self._get_string(id.partner_id.district_id.name)
 
             # Store name or place of delivery Locality
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.locality_id.name)
-
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.locality_id.name)
+            else:
+                txt += self._get_string(id.partner_id.locality_id.name)
             # Store name or place of delivery Full Address
             txt += pipe
             # txt += self._get_full_address(self._get_doc_type(id, True))
 
             # Store name or place of delivery Canton
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.canton_id.name)
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.canton_id.name)
+            else:
+                txt += self._get_string(id.partner_id.canton_id.name)
 
             # Store name or place of delivery Province
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.province_id.name)
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.province_id.name)
+            else:
+                txt += self._get_string(id.partner_id.province_id.name)
 
             # Store name or place of delivery Country
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.country_id.name)
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.country_id.name)
+            else:
+                txt += self._get_string(id.partner_id.country_id.name)
 
             # Store name or place of delivery Zip
             txt += pipe
-            txt += self._get_string(id.partner_shipping_id.zip)
+            if 'partner_shipping_id' in id:
+                txt += self._get_string(id.partner_shipping_id.zip)
+            else:
+                txt += self._get_string(id.partner_id.zip)
 
             # Store ID
             txt += pipe
@@ -650,11 +677,11 @@ class AccountInvoice(models.Model):
 
             # Type emitter identification. See codes in Annex 3.
             txt += pipe
-            txt += '02'
+            txt += self._get_string(id.company_id.partner_id.num_cedula_receptor)
 
             # Receptor type identification. See codes in Annex 3
             txt += pipe
-            txt += '02'
+            txt += self._get_string(id.partner_id.num_cedula_receptor)
 
             # trade name of the recipient.
             txt += pipe
@@ -734,10 +761,15 @@ class AccountInvoice(models.Model):
             counter = 0
             ########LINES########
             for line in id.invoice_line_ids:
+                sale_order_id = False
                 txt += '\n'
                 if counter == 0:
                     txt += '¬'
-                sale_order_id = self.env['sale.order'].sudo().search([('name', '=', id.origin)])
+                try:
+                    sale_order_id = self.env['sale.order'].sudo().search([('name', '=', id.origin)])
+                except:
+                    pass
+
                 if len(line.name) > 160:
                     UserError(
                         'Description for product - ' + line.product_id.name + ' cannot be greater than 160 characters')
@@ -755,12 +787,9 @@ class AccountInvoice(models.Model):
                     sale_order_line_id = self.env['sale.order.line'].sudo().search(
                         [('order_id', '=', sale_order_id.id), ('product_id', '=', line.product_id.id)])
                     if sale_order_line_id:
-                        try:
-                            if sale_order_line_id.product_uom.code:
-                                txt += sale_order_line_id.product_uom.code
-                            else:
-                                txt += 'Otros'
-                        except:
+                        if sale_order_line_id.product_uom.code:
+                            txt += sale_order_line_id.product_uom.code
+                        else:
                             txt += 'Otros'
                     else:
                         txt += 'Otros'
@@ -811,12 +840,9 @@ class AccountInvoice(models.Model):
                     sale_order_line_id = self.env['sale.order.line'].sudo().search(
                         [('order_id', '=', sale_order_id.id), ('product_id', '=', line.product_id.id)])
                     if sale_order_line_id:
-                        try:
-                            if sale_order_line_id.product_uom.code:
-                                txt += sale_order_line_id.product_uom.code
-                            else:
-                                txt += 'Otros'
-                        except:
+                        if sale_order_line_id.product_uom.code:
+                            txt += sale_order_line_id.product_uom.code
+                        else:
                             txt += 'Otros'
                     else:
                         txt += 'Otros'
@@ -948,25 +974,12 @@ class AccountInvoice(models.Model):
                         txt += pipe
                         txt += pipe
 
-                        # txt += ';'
-                        # txt += ';'
-                        # txt += ';'
-                        # txt += ';'
-                        # txt += ';'
-                        # txt += ';'
-                        # txt += ';'
-                        # txt += ';'
-                        # txt += ';'
-
             if invoice_counter < (invoice_total - 1):
                 txt += '\n'
         else:
-            raise UserError('Required data is missing or empty. Please check whether the invoice is validated')
+            raise UserError(_('Required data is missing or empty. Please check whether the invoice is validated. Please check the invoice sequence no.'))
 
         invoice_counter += 1
-        # current_time = time.strftime("%Y%m%d-%H%M%S")
-        # file_name = 'avd_' + current_time + '.txt'
-        print(txt)
         data = '<?xml version="1.0" encoding="utf-8"?>' + \
                '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">' + \
                '<soap12:Body>' + \
@@ -979,10 +992,6 @@ class AccountInvoice(models.Model):
                '</soap12:Body>' + \
                '</soap12:Envelope>'
 
-
-
-        print(data)
-
         response = requests.post(id.company_id.url, data.encode(),
                                  headers={
                                      'Content-Type': 'application/soap+xml; charset=utf-8'
@@ -990,7 +999,6 @@ class AccountInvoice(models.Model):
 
 
         res = response.content.decode('UTF-8')
-        print(res)
         import xml.etree.ElementTree as ET
 
         root = ET.fromstring(res)
@@ -1081,7 +1089,7 @@ class AccountInvoice(models.Model):
 
 
     def _get_vat_no(self, id):
-        if self._get_doc_type(id).vat and len(self._get_doc_type(id).vat) <= 12 and self._no_special(
+        if self._get_doc_type(id).vat and len(self._get_doc_type(id).vat) <= 12 and len(self._get_doc_type(id).vat) > 0 and self._no_special(
                 self._get_doc_type(id).vat):
             return self._get_doc_type(id).vat
         else:
@@ -1090,7 +1098,8 @@ class AccountInvoice(models.Model):
 
     def _get_company_registry_no(self, id):
         if self._get_doc_type(id).company_registry and len(
-                self._get_doc_type(id).company_registry) <= 12 and self._no_special(
+                self._get_doc_type(id).company_registry) <= 12 and len(
+            self._get_doc_type(id).company_registry) > 0 and self._no_special(
             self._get_doc_type(id).company_registry):
             return self._get_doc_type(id).company_registry
         else:
@@ -1158,7 +1167,6 @@ class AccountInvoice(models.Model):
         return '1'
 
 
-
     def _doc_type(self, id):
         if id.type == 'out_invoice':
             return '01'
@@ -1166,7 +1174,6 @@ class AccountInvoice(models.Model):
             return '02' # Debit note (Vendor)
         elif id.type == 'out_refund':
             return '03' # Credit note (Customer)
-
 
     def _get_doc_type(self, id, opp=False):
         # if id.type == 'out_invoice' or id.type == 'out_refund':

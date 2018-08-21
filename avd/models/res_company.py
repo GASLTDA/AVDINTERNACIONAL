@@ -1,4 +1,4 @@
-from odoo import models, fields
+from odoo import models, fields,_
 
 
 class ResCompany(models.Model):
@@ -14,7 +14,6 @@ class ResCompany(models.Model):
     vat = fields.Char(size=13)
     store_branch = fields.Char('Store/Branch No.', size=3)
 
-
     url = fields.Char()
-    username = fields.Char()
-    password = fields.Char()
+    username = fields.Char(string=_('Username'))
+    password = fields.Char(string=_('Password'))
