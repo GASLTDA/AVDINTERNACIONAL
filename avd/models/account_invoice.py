@@ -49,7 +49,8 @@ class AccountInvoice(models.Model):
     def generate_file(self):
 
         if not self.company_id.url or not self.company_id.username or not self.company_id.password:
-            raise UserError(_("Please check AVD configuration"))
+            return
+            # raise UserError(_("Please check AVD configuration"))
         hat = '~'
         pipe = '|'
         carriage_return = '\n'
