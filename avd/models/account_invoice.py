@@ -39,6 +39,8 @@ class AccountInvoice(models.Model):
     success = fields.Boolean(default=False)
     show_button = fields.Boolean(compute='_show_button')
 
+    payment_term_id = fields.Many2one('account.payment.term', string='Payment Terms', readonly=False)
+
     @api.multi
     def action_invoice_open(self):
         res = super(AccountInvoice, self).action_invoice_open()
@@ -641,9 +643,9 @@ class AccountInvoice(models.Model):
                 # txt += '01'
                 txt += ''
             elif id.type == 'in_refund':
-                txt += '03'
-            elif id.type == 'out_refund':
                 txt += '02'
+            elif id.type == 'out_refund':
+                txt += '03'
 
             # Telephone number of foreign receiver (20 digits no dashes or spaces).
             txt += pipe
@@ -669,12 +671,14 @@ class AccountInvoice(models.Model):
             # City where the customs.
             txt += pipe
 
-            # Email the issuer.
+            # Email the Receptor.
             txt += pipe
-            txt += self._get_string(self._get_doc_type(id).email)
+            txt += self._get_string(id.partner_id.email)
 
             # Exchange rate
             txt += pipe
+            if id.company_id.currency_id.id !=  id.currency_id.id:
+                txt += str(id.currency_id.rate)
 
             # Type emitter identification. See codes in Annex 3.
             txt += pipe
@@ -1175,9 +1179,9 @@ class AccountInvoice(models.Model):
         if id.type == 'out_invoice':
             return '01'
         elif id.type == 'in_refund':
-            return '02' # Debit note (Vendor)
+            return '02'
         elif id.type == 'out_refund':
-            return '03' # Credit note (Customer)
+            return '03'
 
     def _get_doc_type(self, id, opp=False):
         # if id.type == 'out_invoice' or id.type == 'out_refund':
