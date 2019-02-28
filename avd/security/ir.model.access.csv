@@ -1,0 +1,6 @@
+id,group_id:id,name,model_id:id,perm_unlink,perm_create,perm_write,perm_read
+avd.province,base.group_user,Province,avd.model_province,FALSE,FALSE,FALSE,TRUE
+avd.canton,base.group_user,Canton,avd.model_canton,FALSE,FALSE,FALSE,TRUE
+avd.district,base.group_user,District,avd.model_district,FALSE,FALSE,FALSE,TRUE
+avd.locality,base.group_user,Locality,avd.model_locality,FALSE,FALSE,FALSE,TRUE
+avd.terminal,base.group_user,Terminal,avd.model_terminal,TRUE,TRUE,TRUE,TRUE

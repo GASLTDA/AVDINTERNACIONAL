@@ -6,7 +6,7 @@
     'sequence': 30,
     'description': """Text file to submit invoice information""",
     'category': 'Accounting',
-    'depends' : ['base','base_setup', 'account'],
+    'depends' : ['base','base_setup', 'account','account_cancel'],
     'installable': True,
     'website': 'https://janeindiran.com',
     'application': False,
@@ -14,6 +14,7 @@
     'external_dependencies': {'python': ['xmltodict']},
     'data': [
         #import data
+        'security/ir.model.access.csv',
         'data/locality_province.xml',
         'data/locality_canton.xml',
         'data/locality_district.xml',

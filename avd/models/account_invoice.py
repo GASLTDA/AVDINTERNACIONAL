@@ -1,7 +1,9 @@
+# -*- coding: utf-8 -*-
 import datetime
 import logging
 import string
 
+import base64
 import requests
 import xmltodict
 
@@ -37,22 +39,23 @@ class AccountInvoice(models.Model):
     date = fields.Char('Date', copy=False)
     response = fields.Text(copy=False)
     success = fields.Boolean(default=False)
+    txt_file = fields.Binary(string='Text File')
     show_button = fields.Boolean(compute='_show_button')
 
-    payment_term_id = fields.Many2one('account.payment.term', string='Payment Terms', readonly=False)
 
     @api.multi
     def action_invoice_open(self):
         res = super(AccountInvoice, self).action_invoice_open()
-        self.generate_file()
+        if self.type in ('out_invoice', 'out_refund'):
+            self.generate_file()
         return res
 
     @api.multi
     def generate_file(self):
 
         if not self.company_id.url or not self.company_id.username or not self.company_id.password:
+            logger.info("AVD Not Configured")
             return
-            # raise UserError(_("Please check AVD configuration"))
         hat = '~'
         pipe = '|'
         carriage_return = '\n'
@@ -66,8 +69,16 @@ class AccountInvoice(models.Model):
             return
 
         if id.number and len(id.number) <= 20:
+            doc_type = '01'
+            if id.type == 'out_invoice':
+                doc_type = '01'
+            elif id.type == 'in_refund':
+                doc_type = '02'
+            elif id.type == 'out_refund':
+                doc_type = '03'
+
             txt += hat
-            txt += '[Folio]'
+            txt += str(id.company_id.store_branch+id.terminal.name+doc_type+id.number)
 
             # Isser Name
             txt += pipe
@@ -235,7 +246,7 @@ class AccountInvoice(models.Model):
 
             # Receiver Id/Ref
             txt += pipe
-            txt += self._get_string(self._get_doc_type(id, True).ref)
+            txt += self._get_string(self._get_doc_type(id, True).vat)
 
             # Receiver Street or avenue
             txt += pipe
@@ -280,7 +291,7 @@ class AccountInvoice(models.Model):
             txt += pipe
             untaxed_amount = 0.0
             for line in id.invoice_line_ids:
-                untaxed_amount = line.quantity * line.price_unit
+                untaxed_amount += line.quantity * line.price_unit
             txt += str(untaxed_amount)
 
             # Total Tax Amount
@@ -517,7 +528,7 @@ class AccountInvoice(models.Model):
 
             # Recipient's phone number (20 digits no dashes or spaces).
             txt += pipe
-            txt += self._get_string(self._get_doc_type(id, True).phone)
+            txt += self._get_string(self._get_doc_type(id, True).phone).replace('-','').replace(' ','').replace('+','')
 
             # trade name of the issuer
             txt += pipe
@@ -536,7 +547,7 @@ class AccountInvoice(models.Model):
             for taxes in id.tax_line_ids:
                 tax_id = self.env['account.tax'].search([('name', '=', taxes.name)])
                 if tax_id:
-                    if tax_id.service_tax == False:
+                    if tax_id.service_tax == False and tax_id.amount > 0.0:
                         sales_tax_amount += taxes.amount_total
 
             txt += str(sales_tax_amount)
@@ -575,7 +586,9 @@ class AccountInvoice(models.Model):
             txt += pipe
             for line in id.invoice_line_ids:
                 if line.product_id.type == 'service':
-                    total_service += line.price_total - line.price_subtotal
+                    diff = line.price_total - line.price_subtotal
+                    if diff > 0.0:
+                        total_service += line.price_subtotal
             txt += str(total_service)
 
             # Amount exempt from electronic document for service lines. Place a "0.00" (zero) if not applicable.
@@ -586,7 +599,7 @@ class AccountInvoice(models.Model):
                 if line.product_id.type == 'service':
                     diff = line.price_total - line.price_subtotal
                     if diff == 0.0:
-                        service_exempt += line.price_total
+                        service_exempt += line.price_subtotal
             txt += str(service_exempt)
 
             # Taxed electronic document for lines of goods amount. Place a "0.00" (zero) if not applicable.
@@ -594,12 +607,20 @@ class AccountInvoice(models.Model):
             txt += pipe
             for line in id.invoice_line_ids:
                 if line.product_id.type != 'service':
-                    total_goods += line.price_total - line.price_subtotal
+                    diff = line.price_total - line.price_subtotal
+                    if diff > 0 :
+                        total_goods += line.price_subtotal
             txt += str(total_goods)
 
             # TotalMercanciasExentas {}Amount exempt from electronic document for freight lines. Place a "0.00" (zero) if not applicable.
             txt += pipe
-            txt += str(0.0)
+            total_goods_exempt = 0.0
+            for line in id.invoice_line_ids:
+                if line.product_id.type != 'service':
+                    diff = line.price_total - line.price_subtotal
+                    if diff == 0.0:
+                        total_goods_exempt += line.price_subtotal
+            txt += str(total_goods_exempt)
 
             # Date and time in which the DGT recorded the taxpayer and FE issuer under the "Registration Certificate Electronic Billing". (YyyymmddHHMMSS). Example: 20090109162000.
             txt += pipe
@@ -726,7 +747,7 @@ class AccountInvoice(models.Model):
             subtotal = 0.0
             for line in id.invoice_line_ids:
                 subtotal += line.price_subtotal
-            txt += str(subtotal)
+            txt += str(subtotal-dis_total)
 
             # Year of approval.
             txt += pipe
@@ -749,7 +770,8 @@ class AccountInvoice(models.Model):
             total_service_merchandise = 0.0
             txt += pipe
             for line in id.invoice_line_ids:
-                total_service_merchandise += line.price_total - line.price_subtotal
+                if line.price_total - line.price_subtotal > 0.0:
+                    total_service_merchandise += line.price_subtotal
             txt += str(total_service_merchandise)
 
             # Amount exempt from electronic document for service lines and merchandise. Place a "0.00" (zero) if not applicable.
@@ -780,7 +802,7 @@ class AccountInvoice(models.Model):
                         'Description for product - ' + line.product_id.name + ' cannot be greater than 160 characters')
 
                 # Description. Maximum 160 characters.
-                txt += line.name
+                txt += str(line.name).strip('\n')
                 txt += pipe
 
                 # Quantity
@@ -795,11 +817,11 @@ class AccountInvoice(models.Model):
                         if sale_order_line_id.product_uom.code:
                             txt += sale_order_line_id.product_uom.code
                         else:
-                            txt += 'Otros'
+                            txt += 'Unid'
                     else:
-                        txt += 'Otros'
+                        txt += 'Unid'
                 else:
-                    txt += 'Otros'
+                    txt += 'Unid'
                 txt += pipe
 
                 # unit price of the item or service.
@@ -848,11 +870,11 @@ class AccountInvoice(models.Model):
                         if sale_order_line_id.product_uom.code:
                             txt += sale_order_line_id.product_uom.code
                         else:
-                            txt += 'Otros'
+                            txt += 'Unid'
                     else:
-                        txt += 'Otros'
+                        txt += 'Unid'
                 else:
-                    txt += 'Otros'
+                    txt += 'Unid'
                 txt += pipe
 
                 # Discount code applied to the line
@@ -865,7 +887,10 @@ class AccountInvoice(models.Model):
                 # Discount amount. Place a "0.00" (zero) if not applicable.
                 line_total_without_dis = 0.0
                 line_total_without_dis = line.quantity * line.price_unit
-                txt += str(line_total_without_dis * (line.discount / 100))
+                if line.discount > 0.0:
+                    txt += str(line_total_without_dis * (line.discount / 100))
+                else:
+                    txt += str(0.0)
                 txt += pipe
 
                 # Unit price without the discount applied.
@@ -954,36 +979,38 @@ class AccountInvoice(models.Model):
 
                 if line.invoice_line_tax_ids:
                     for tax_ids in line.invoice_line_tax_ids:
-                        txt += '\\'
-                        txt += 'I'
-                        txt += pipe
+                        if tax_ids.amount > 0:
+                            txt += '\\'
+                            txt += 'I'
+                            txt += pipe
 
-                        if tax_ids.service_tax == True:
-                            txt += '01'
-                        else:
-                            txt += '07'
-                        txt += pipe
+                            if tax_ids.service_tax == True:
+                                txt += '01'
+                            else:
+                                txt += '07'
+                            txt += pipe
 
-                        txt += str(tax_ids.amount)
-                        txt += pipe
+                            txt += str(tax_ids.amount)
+                            txt += pipe
 
-                        line_total_without_dis = 0.0
-                        line_total_without_dis = line.quantity * line.price_unit
-                        line_total_after_discount = line_total_without_dis - (
-                            line_total_without_dis * (line.discount / 100))
-                        txt += str(line_total_after_discount * (tax_ids.amount / 100))
-                        txt += pipe
+                            line_total_without_dis = 0.0
+                            line_total_without_dis = line.quantity * line.price_unit
+                            line_total_after_discount = line_total_without_dis - (
+                                line_total_without_dis * (line.discount / 100))
+                            txt += str(line_total_after_discount * (tax_ids.amount / 100))
+                            txt += pipe
 
-                        txt += pipe
-                        txt += pipe
-                        txt += pipe
-                        txt += pipe
+                            txt += pipe
+                            txt += pipe
+                            txt += pipe
+                            txt += pipe
 
             if invoice_counter < (invoice_total - 1):
                 txt += '\n'
         else:
             raise UserError(_('Required data is missing or empty. Please check whether the invoice is validated. Please check the invoice sequence no.'))
 
+        id.txt_file = base64.b64encode(str(txt).encode())
         invoice_counter += 1
         data = '<?xml version="1.0" encoding="utf-8"?>' + \
                '<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">' + \
@@ -991,7 +1018,7 @@ class AccountInvoice(models.Model):
                '<procesarTextoPlanoSinCtl xmlns="http://www.ekomercio.com/">' + \
                '<usuario>'+ id.company_id.username +'</usuario>' + \
                '<password>'+ id.company_id.password +'</password>' + \
-               '<id>'+id.company_id.company_registry+'</id>' + \
+               '<id>'+str(id.company_id.company_registry).replace('-','').replace(' ','')+'</id>' + \
                '<textoPlano>' + str(txt) + '</textoPlano>' + \
                '</procesarTextoPlanoSinCtl>' + \
                '</soap12:Body>' + \
@@ -1048,13 +1075,13 @@ class AccountInvoice(models.Model):
 
     def _get_phone(self, id):
         if id.phone:
-            return str(id.phone)
+            return str(id.phone).replace('-','').replace(' ','').replace('+','')
         return ''
 
 
     def _get_fax(self, id):
         if id.fax_no:
-            return str(id.fax_no)
+            return str(id.fax_no).replace('-','').replace(' ','').replace('+','')
         return ''
 
 
@@ -1099,7 +1126,7 @@ class AccountInvoice(models.Model):
     def _get_vat_no(self, id):
         if self._get_doc_type(id).vat and len(self._get_doc_type(id).vat) <= 12 and len(self._get_doc_type(id).vat) > 0 and self._no_special(
                 self._get_doc_type(id).vat):
-            return self._get_doc_type(id).vat
+            return str(self._get_doc_type(id).vat).replace('-','').replace(' ','')
         else:
             raise UserError('Required data is missing or empty')
 
@@ -1109,7 +1136,7 @@ class AccountInvoice(models.Model):
                 self._get_doc_type(id).company_registry) <= 12 and len(
             self._get_doc_type(id).company_registry) > 0 and self._no_special(
             self._get_doc_type(id).company_registry):
-            return self._get_doc_type(id).company_registry
+            return str(self._get_doc_type(id).company_registry).replace('-','').replace(' ','')
         else:
             raise UserError('Required data is missing or empty')
 
@@ -1179,9 +1206,9 @@ class AccountInvoice(models.Model):
         if id.type == 'out_invoice':
             return '01'
         elif id.type == 'in_refund':
-            return '02'
+            return '02' # Debit note (Vendor)
         elif id.type == 'out_refund':
-            return '03'
+            return '03' # Credit note (Customer)
 
     def _get_doc_type(self, id, opp=False):
         # if id.type == 'out_invoice' or id.type == 'out_refund':
