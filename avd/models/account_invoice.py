@@ -1055,7 +1055,7 @@ class AccountInvoice(models.Model):
                 write_data.update({'success': success,
                                    'folio': individual_data['ReturnFolio'],
                                    'clave_numerica': individual_data['ReturnClaveNumerica'],
-                                   'date': individual_data['ReturnDateTime']
+                                   'date_submitted': individual_data['ReturnDateTime']
                                    })
             else:
                 write_data.update({
