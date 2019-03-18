@@ -39,7 +39,7 @@ class AccountInvoice(models.Model):
 
     folio = fields.Char('Folio', copy=False)
     clave_numerica = fields.Char('Clave Numerica', copy=False)
-    date = fields.Char('Date', copy=False)
+    date_submitted = fields.Char('Date', copy=False)
     response = fields.Text(copy=False)
     success = fields.Boolean(default=False)
     txt_file = fields.Binary(string='Text File')
